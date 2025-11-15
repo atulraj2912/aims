@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { emitInventoryUpdate } from '@/lib/socket';
 import axios from 'axios';
+import FormData from 'form-data';
 
-// POST /api/vision/detect - Upload image and detect inventory items using Roboflow
+// Local ML Model API endpoint
+const ML_API_URL = process.env.ML_API_URL || 'http://localhost:5001';
+
+// POST /api/vision/detect - Upload image and detect products using local ML model
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -37,54 +41,104 @@ export async function POST(request: NextRequest) {
       lastUpdated: item.last_updated
     }));
 
-    // Convert image to buffer
-    const imageBuffer = Buffer.from(await image.arrayBuffer());
-
     let detectedProducts = [];
-    let detectionMethod = 'roboflow';
-    let extractedText = '';
+    let detectionMethod = 'local-ml-model';
+    let prediction = null;
 
-    // Try Roboflow first (no billing required)
-    const roboflowKey = process.env.ROBOFLOW_API_KEY;
-    const roboflowModel = process.env.ROBOFLOW_MODEL || 'packages-pqk0m';
-    const roboflowVersion = process.env.ROBOFLOW_VERSION || '3';
+    try {
+      // Try local ML model first (your trained classifier)
+      console.log('🤖 Attempting detection with local ML model...');
+      
+      const imageBuffer = Buffer.from(await image.arrayBuffer());
+      
+      // Create form data for ML API
+      const mlFormData = new FormData();
+      mlFormData.append('file', imageBuffer, {
+        filename: image.name,
+        contentType: image.type
+      });
+      mlFormData.append('inventory', JSON.stringify(inventoryItems));
 
-    if (roboflowKey && roboflowKey !== 'your_roboflow_api_key_here') {
-      try {
-        const base64Image = imageBuffer.toString('base64');
+      const mlResponse = await axios.post(`${ML_API_URL}/api/detect`, mlFormData, {
+        headers: {
+          ...mlFormData.getHeaders(),
+        },
+        timeout: 10000 // 10 second timeout
+      });
 
-        const response = await axios({
-          method: 'POST',
-          url: `https://detect.roboflow.com/${roboflowModel}/${roboflowVersion}`,
-          params: {
-            api_key: roboflowKey,
-            confidence: 40,
-            overlap: 30
-          },
-          data: base64Image,
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          }
-        });
-
-        const predictions = response.data.predictions || [];
-        console.log(`📦 Roboflow detected ${predictions.length} objects`);
-
-        // Match detected objects to inventory
-        detectedProducts = matchDetectionsToInventory(predictions, inventoryItems);
-        detectionMethod = 'roboflow';
+      if (mlResponse.data.success) {
+        prediction = mlResponse.data.prediction;
+        const matched = mlResponse.data.matched;
         
-        console.log(`✅ Matched ${detectedProducts.length} products to inventory`);
-      } catch (error) {
-        console.error('Roboflow detection failed:', error);
-        detectionMethod = 'simulated-fallback';
+        console.log(`✅ ML Model detected: ${prediction.predicted_class} (${(prediction.confidence * 100).toFixed(1)}%)`);
+        
+        if (matched) {
+          detectedProducts = [{
+            name: matched.name,
+            sku: matched.sku,
+            confidence: prediction.confidence,
+            extractedText: `ML Model: ${prediction.predicted_class}`,
+            predictedClass: prediction.predicted_class,
+            topPredictions: prediction.top_predictions
+          }];
+        } else {
+          // Product detected but not in inventory
+          detectedProducts = [{
+            name: prediction.predicted_class,
+            sku: 'NOT-IN-INVENTORY',
+            confidence: prediction.confidence,
+            extractedText: `Detected: ${prediction.predicted_class} (not in inventory)`,
+            predictedClass: prediction.predicted_class,
+            topPredictions: prediction.top_predictions
+          }];
+        }
+        
+        detectionMethod = 'local-ml-classifier';
+      } else {
+        throw new Error('ML model returned unsuccessful response');
+      }
+    } catch (mlError) {
+      console.error('Local ML model failed:', mlError);
+      
+      // Fallback to Roboflow
+      const roboflowKey = process.env.ROBOFLOW_API_KEY;
+      
+      if (roboflowKey && roboflowKey !== 'your_roboflow_api_key_here') {
+        try {
+          console.log('🔄 Falling back to Roboflow...');
+          const imageBuffer = Buffer.from(await image.arrayBuffer());
+          const base64Image = imageBuffer.toString('base64');
+          
+          const roboflowModel = process.env.ROBOFLOW_MODEL || 'packages-pqk0m';
+          const roboflowVersion = process.env.ROBOFLOW_VERSION || '3';
+
+          const response = await axios({
+            method: 'POST',
+            url: `https://detect.roboflow.com/${roboflowModel}/${roboflowVersion}`,
+            params: {
+              api_key: roboflowKey,
+              confidence: 40,
+              overlap: 30
+            },
+            data: base64Image,
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded'
+            }
+          });
+
+          const predictions = response.data.predictions || [];
+          detectedProducts = matchDetectionsToInventory(predictions, inventoryItems);
+          detectionMethod = 'roboflow-fallback';
+        } catch (roboflowError) {
+          console.error('Roboflow also failed:', roboflowError);
+          detectionMethod = 'simulated';
+          detectedProducts = simulateDetection(inventoryItems);
+        }
+      } else {
+        console.warn('⚠️ ML model unavailable and Roboflow not configured, using simulation');
+        detectionMethod = 'simulated';
         detectedProducts = simulateDetection(inventoryItems);
       }
-    } else {
-      // Fallback to simulation if Roboflow not configured
-      console.warn('⚠️ Roboflow API not configured, using simulation');
-      detectionMethod = 'simulated';
-      detectedProducts = simulateDetection(inventoryItems);
     }
 
     // Update stock for specific SKU if provided
@@ -109,8 +163,8 @@ export async function POST(request: NextRequest) {
       data: {
         detectedCount: detectedProducts.length,
         products: detectedProducts,
-        extractedText,
         detectionMethod,
+        mlPrediction: prediction,
         confidence: detectedProducts.length > 0 ? 
           detectedProducts.reduce((sum: number, p: any) => sum + p.confidence, 0) / detectedProducts.length : 
           0,
