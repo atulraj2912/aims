@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { emitInventoryUpdate } from '@/lib/socket';
+import { mockInventory } from '@/lib/mockData';
 
 // GET /api/inventory - Fetch all inventory items from Supabase
 export async function GET() {
@@ -10,7 +11,16 @@ export async function GET() {
       .select('*')
       .order('sku', { ascending: true });
 
-    if (error) throw error;
+    if (error) {
+      console.warn('Supabase error, using mock data:', error.message);
+      // Fallback to mock data if Supabase fails
+      return NextResponse.json({
+        success: true,
+        data: mockInventory,
+        lastSync: new Date().toISOString(),
+        usingMockData: true
+      });
+    }
 
     // Transform database format to match frontend expectations
     const transformedData = data.map(item => ({
@@ -37,10 +47,13 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Inventory fetch error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch inventory data' },
-      { status: 500 }
-    );
+    // Return mock data as ultimate fallback
+    return NextResponse.json({
+      success: true,
+      data: mockInventory,
+      lastSync: new Date().toISOString(),
+      usingMockData: true
+    });
   }
 }
 
