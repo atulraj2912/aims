@@ -778,16 +778,17 @@ export default function Dashboard() {
 
                 <button
                   onClick={() => {
-                    const csv = 'SKU,Name,Current Stock,Optimal Stock,Status\\n' +
+                    const csv = 'SKU,Name,Category,Current Stock,Optimal Stock,Unit,Price,Location,Status\n' +
                       inventory.map(item => 
-                        `${item.sku},${item.name},${item.currentStock},${item.optimalStock},${item.currentStock / item.optimalStock <= 0.2 ? 'CRITICAL' : 'OK'}`
-                      ).join('\\n');
-                    const blob = new Blob([csv], { type: 'text/csv' });
+                        `${item.sku},"${item.name}",${item.category || 'N/A'},${item.currentStock},${item.optimalStock},${item.unit},₹${item.price || 0},"${item.location}",${item.currentStock / item.optimalStock <= 0.2 ? 'CRITICAL' : item.currentStock / item.optimalStock <= 0.5 ? 'LOW' : 'OK'}`
+                      ).join('\n');
+                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
                     a.download = `inventory-${new Date().toISOString().split('T')[0]}.csv`;
                     a.click();
+                    window.URL.revokeObjectURL(url);
                     success('Inventory exported to CSV');
                   }}
                   className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-semibold flex items-center gap-2 whitespace-nowrap"
@@ -1172,7 +1173,7 @@ export default function Dashboard() {
                           <p className="text-sm text-blue-800 font-bold">Total Inventory Value</p>
                         </div>
                         <p className="text-4xl font-black text-blue-900 mb-2">
-                          ${inventory.reduce((sum, item) => sum + (item.currentStock * (item.price || 0)), 0).toLocaleString()}
+                          ₹{inventory.reduce((sum, item) => sum + (item.currentStock * (item.price || 0)), 0).toLocaleString()}
                         </p>
                         <p className="text-xs text-blue-700 font-semibold">Current stock value across all items</p>
                       </div>
@@ -1445,10 +1446,10 @@ export default function Dashboard() {
                                 </div>
                                 <div className="flex-1">
                                   <p className="font-bold text-gray-900 text-sm">{item.name}</p>
-                                  <p className="text-xs text-gray-600 font-semibold">{item.currentStock} × ${item.price}</p>
+                                  <p className="text-xs text-gray-600 font-semibold">{item.currentStock} × ₹{item.price}</p>
                                 </div>
                                 <span className="text-base font-black text-blue-700 bg-blue-100 px-3 py-1 rounded-full">
-                                  ${item.value.toLocaleString()}
+                                  ₹{item.value.toLocaleString()}
                                 </span>
                               </div>
                             ))}
@@ -1678,7 +1679,7 @@ export default function Dashboard() {
                           <div className="text-right">
                             <p className="text-xs text-gray-600">Total Value</p>
                             <p className="text-lg font-bold text-gray-900">
-                              ${items.reduce((sum, {item, quantity}) => sum + (item.price * quantity), 0).toFixed(2)}
+                              ₹{items.reduce((sum, {item, quantity}) => sum + (item.price * quantity), 0).toFixed(2)}
                             </p>
                           </div>
                         </div>
@@ -1715,7 +1716,7 @@ export default function Dashboard() {
                                   <span className="text-sm text-gray-600">{item.unit}</span>
                                 </div>
                                 <p className="text-xs text-gray-500 mt-1">
-                                  ${(item.price * quantity).toFixed(2)}
+                                  ₹{(item.price * quantity).toFixed(2)}
                                 </p>
                               </div>
                             </div>
@@ -1735,7 +1736,7 @@ export default function Dashboard() {
                   <div>
                     <p className="text-sm text-gray-600">Total Order Value</p>
                     <p className="text-2xl font-bold text-gray-900">
-                      ${orderingItems.reduce((sum, {item, quantity}) => sum + (item.price * quantity), 0).toFixed(2)}
+                      ₹{orderingItems.reduce((sum, {item, quantity}) => sum + (item.price * quantity), 0).toFixed(2)}
                     </p>
                   </div>
                   <div className="flex gap-3">

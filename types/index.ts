@@ -8,6 +8,9 @@ export interface InventoryItem {
   currentStock: number;
   optimalStock: number;
   unit: string;
+  price?: number;
+  barcode?: string;
+  expiryDate?: string;
   lastUpdated: string;
   location: string;
 }

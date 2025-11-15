@@ -124,7 +124,7 @@ export default function RecordSale({ inventory, onSaleRecorded, onSuccess, onErr
                 </div>
                 <div>
                   <span className="text-gray-600">Price:</span>{' '}
-                  <span className="font-semibold">${selectedProduct.price?.toFixed(2) || '0.00'}</span>
+                  <span className="font-semibold">₹{selectedProduct.price?.toFixed(2) || '0.00'}</span>
                 </div>
               </div>
             </div>

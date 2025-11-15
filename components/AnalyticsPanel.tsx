@@ -146,7 +146,7 @@ export default function AnalyticsPanel() {
       <div className="grid grid-cols-4 gap-6 p-8 bg-gradient-to-br from-gray-50 to-blue-50">
         <div className="text-center bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-shadow">
           <div className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-            ${analytics.summary.totalValue.toLocaleString()}
+            ₹{analytics.summary.totalValue.toLocaleString()}
           </div>
           <div className="text-sm text-gray-600 mt-2 font-medium">Total Inventory Value</div>
           <div className="mt-3 pt-3 border-t border-gray-200">

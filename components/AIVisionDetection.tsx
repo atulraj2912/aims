@@ -254,7 +254,7 @@ export default function AIVisionDetection({
                           </div>
                           <div className="text-right">
                             <p className="text-2xl font-bold text-green-600">
-                              ${results.matched.price || results.matched.unit_price || 'N/A'}
+                              ₹{results.matched.price || results.matched.unit_price || 'N/A'}
                             </p>
                             <p className="text-sm text-gray-600">
                               Stock: {results.matched.current_stock || results.matched.currentStock || 0}
