@@ -3,7 +3,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { sendRestockRequestToSupplier, RestockRequest } from '@/lib/emailService';
 
 // In-memory storage for approval tokens (in production, use database)
-const pendingRequests = new Map<string, RestockRequest>();
+// Use global to persist across hot reloads in development
+const globalForPendingRequests = global as typeof globalThis & {
+  pendingRequests?: Map<string, RestockRequest>;
+};
+
+const pendingRequests = globalForPendingRequests.pendingRequests ?? new Map<string, RestockRequest>();
+globalForPendingRequests.pendingRequests = pendingRequests;
 
 export async function POST(request: NextRequest) {
   try {
@@ -54,9 +60,12 @@ export async function POST(request: NextRequest) {
 
     // Store request with token
     pendingRequests.set(approvalToken, restockRequest);
+    console.log(`✅ Stored approval token: ${approvalToken}`);
+    console.log(`📊 Total pending requests: ${pendingRequests.size}`);
 
     // Set expiration (24 hours)
     setTimeout(() => {
+      console.log(`⏰ Expiring token: ${approvalToken}`);
       pendingRequests.delete(approvalToken);
     }, 24 * 60 * 60 * 1000);
 

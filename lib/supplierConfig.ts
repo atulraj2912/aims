@@ -11,25 +11,25 @@ export interface SupplierContact {
 export const supplierContacts: Record<string, SupplierContact> = {
   'Fresh Produce Co.': {
     name: 'Fresh Produce Co.',
-    email: 'produce@supplier.com', // ← CHANGE THIS to actual supplier email
+    email: 'aryan62056@gmail.com', // Testing with your email
     phone: '+91-9876543210',
     categories: ['Fruit']
   },
   'Green Valley Farms': {
     name: 'Green Valley Farms',
-    email: 'orders@greenvalley.com', // ← CHANGE THIS to actual supplier email
+    email: 'aryan62056@gmail.com', // Testing with your email
     phone: '+91-9876543211',
     categories: ['Vegetable']
   },
   'Dairy Direct Ltd.': {
     name: 'Dairy Direct Ltd.',
-    email: 'sales@dairydirect.com', // ← CHANGE THIS to actual supplier email
+    email: 'aryan62056@gmail.com', // Testing with your email
     phone: '+91-9876543212',
     categories: ['Dairy']
   },
   'General Supplies Inc.': {
     name: 'General Supplies Inc.',
-    email: 'orders@generalsupplies.com', // ← CHANGE THIS to actual supplier email
+    email: 'aryan62056@gmail.com', // Testing with your email
     phone: '+91-9876543213',
     categories: ['Snacks', 'Beverage', 'Personal Care', 'Household']
   }

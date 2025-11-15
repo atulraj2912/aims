@@ -7,6 +7,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const token = searchParams.get('token');
 
+    console.log('🔍 Approval request received for token:', token);
+    console.log('📋 Total pending requests:', pendingRequests.size);
+    console.log('🔑 Available tokens:', Array.from(pendingRequests.keys()));
+
     if (!token) {
       return new NextResponse(
         `
@@ -64,7 +68,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Send confirmation email to shopkeeper
+    console.log('Sending confirmation email to:', process.env.SHOPKEEPER_EMAIL);
     const emailResult = await sendApprovalConfirmation(restockRequest);
+    console.log('Email result:', emailResult);
 
     // Remove from pending requests
     pendingRequests.delete(token);
@@ -74,6 +80,8 @@ export async function GET(request: NextRequest) {
 
     if (!emailResult.success) {
       console.error('Failed to send confirmation email:', emailResult.error);
+    } else {
+      console.log('✅ Confirmation email sent successfully!');
     }
 
     return new NextResponse(
