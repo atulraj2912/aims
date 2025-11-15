@@ -8,8 +8,6 @@ from flask_cors import CORS
 import os
 import uuid
 from datetime import datetime
-from product_detector import ProductDetector
-from product_classifier import ProductClassifier
 import json
 
 app = Flask(__name__)
@@ -34,6 +32,7 @@ def get_detector():
     global detector
     if detector is None:
         print("🔧 Initializing Product Detector (YOLOv8 + OCR)...")
+        from product_detector import ProductDetector
         detector = ProductDetector(confidence_threshold=0.25)
     return detector
 
@@ -42,6 +41,7 @@ def get_classifier():
     global classifier
     if classifier is None:
         print("🔧 Loading Trained Grocery Classifier...")
+        from product_classifier import ProductClassifier
         classifier = ProductClassifier(model_path='weights/grocery_classifier_best.pt', top_k=5)
     return classifier
 
