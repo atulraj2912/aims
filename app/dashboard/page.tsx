@@ -22,6 +22,7 @@ import { InventoryItem, ReplenishmentOrder } from '@/types';
 import { useSocket } from '@/hooks/useSocket';
 import { useToast } from '@/hooks/useToast';
 import { predictSalesWithLocalModel } from '@/lib/local-model';
+import { getSupplierNameByCategory, getSupplierEmail } from '@/lib/supplierConfig';
 
 export default function Dashboard() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -39,6 +40,7 @@ export default function Dashboard() {
   const [showSupplierOrder, setShowSupplierOrder] = useState(false);
   const [orderingItems, setOrderingItems] = useState<{item: InventoryItem, quantity: number}[]>([]);
   const [selectedInsight, setSelectedInsight] = useState<'all' | 'overall' | 'seasonal' | 'category' | 'performers' | 'velocity'>('all');
+  const [lastNotificationTime, setLastNotificationTime] = useState<number>(0);
   const { socket, isConnected } = useSocket();
   const { toasts, removeToast, success, error: errorToast, info } = useToast();
 
@@ -313,21 +315,31 @@ export default function Dashboard() {
         const mediumPriorityItems = optimizationResults.filter(r => r.optimization.priority === 'medium');
         const criticalItems = optimizationResults.filter(r => r.optimization.stockRatio < 0.3);
         
-        // Send notifications based on stock analysis
-        if (urgentItems.length > 0) {
-          errorToast(`⚠️ ${urgentItems.length} item(s) critically low! Immediate restocking required.`);
-        } else if (highPriorityItems.length > 0) {
-          info(`📦 ${highPriorityItems.length} item(s) need restocking within 24 hours.`);
-        } else if (mediumPriorityItems.length > 0) {
-          info(`📊 ${mediumPriorityItems.length} item(s) should be restocked within 3 days.`);
-        }
+        // Send notifications based on stock analysis (only once per minute)
+        const now = Date.now();
+        const oneMinute = 60000; // 60 seconds
         
-        // Additional insights
-        const totalItemsNeedingAttention = urgentItems.length + highPriorityItems.length + mediumPriorityItems.length;
-        if (totalItemsNeedingAttention === 0) {
-          success('✅ All inventory levels are optimal!');
-        } else if (totalItemsNeedingAttention > 10) {
-          info(`📈 Stock optimization recommended for ${totalItemsNeedingAttention} items.`);
+        if (now - lastNotificationTime > oneMinute) {
+          if (urgentItems.length > 0) {
+            errorToast(`⚠️ ${urgentItems.length} item(s) critically low! Immediate restocking required.`);
+            setLastNotificationTime(now);
+          } else if (highPriorityItems.length > 0) {
+            info(`📦 ${highPriorityItems.length} item(s) need restocking within 24 hours.`);
+            setLastNotificationTime(now);
+          } else if (mediumPriorityItems.length > 0) {
+            info(`📊 ${mediumPriorityItems.length} item(s) should be restocked within 3 days.`);
+            setLastNotificationTime(now);
+          } else {
+            // Additional insights
+            const totalItemsNeedingAttention = urgentItems.length + highPriorityItems.length + mediumPriorityItems.length;
+            if (totalItemsNeedingAttention === 0) {
+              success('✅ All inventory levels are optimal!');
+              setLastNotificationTime(now);
+            } else if (totalItemsNeedingAttention > 10) {
+              info(`📈 Stock optimization recommended for ${totalItemsNeedingAttention} items.`);
+              setLastNotificationTime(now);
+            }
+          }
         }
         
       } else {
@@ -393,7 +405,7 @@ export default function Dashboard() {
         fetchInventory();
         fetchPendingOrders();
       }
-    }, 10000); // 10 seconds fallback
+    }, 60000); // 1 minute fallback
 
     return () => clearInterval(interval);
   }, [isConnected]);
@@ -445,30 +457,48 @@ export default function Dashboard() {
   // Handle restocking approval and send requests to suppliers
   const handleRestockingApproval = async (items: InventoryItem[]) => {
     try {
-      const restockRequests = items.map(item => ({
-        sku: item.sku,
-        name: item.name,
-        currentStock: item.currentStock,
-        optimalStock: item.optimalStock,
-        quantityNeeded: item.optimalStock - item.currentStock,
-        location: item.location,
-        urgency: (item.currentStock / item.optimalStock) <= 0.2 ? 'critical' : 'low'
-      }));
+      // Group items by supplier
+      const supplierGroups = items.reduce((acc, item) => {
+        const supplier = getSupplierNameByCategory(item.category);
+        if (!acc[supplier]) acc[supplier] = [];
+        acc[supplier].push(item);
+        return acc;
+      }, {} as Record<string, InventoryItem[]>);
 
-      const response = await fetch('/api/restocking', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requests: restockRequests })
-      });
+      // Send email to each supplier
+      let emailsSent = 0;
+      for (const [supplierName, supplierItems] of Object.entries(supplierGroups)) {
+        const emailItems = supplierItems.map(item => ({
+          sku: item.sku,
+          name: item.name,
+          currentStock: item.currentStock,
+          quantityNeeded: item.optimalStock - item.currentStock,
+          unit: item.unit,
+          price: item.price || 0
+        }));
 
-      const result = await response.json();
-      
-      if (result.success) {
-        success(`✓ Restocking requests sent for ${items.length} product${items.length > 1 ? 's' : ''}!`);
+        const emailResponse = await fetch('/api/restock/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: emailItems,
+            supplierEmail: getSupplierEmail(supplierName),
+            supplierName: supplierName
+          })
+        });
+
+        const emailResult = await emailResponse.json();
+        if (emailResult.success) {
+          emailsSent++;
+        }
+      }
+
+      if (emailsSent > 0) {
+        success(`✓ Restock emails sent to ${emailsSent} supplier${emailsSent > 1 ? 's' : ''} for ${items.length} product${items.length > 1 ? 's' : ''}!`);
         setShowRestockingApproval(false);
         fetchInventory();
       } else {
-        throw new Error(result.error || 'Failed to send restocking requests');
+        throw new Error('Failed to send any restock emails');
       }
     } catch (err) {
       console.error('Restocking error:', err);
@@ -1844,19 +1874,55 @@ export default function Dashboard() {
                       Cancel
                     </button>
                     <button
-                      onClick={() => {
-                        // Send orders to suppliers
-                        success(`Order sent to ${Object.keys(
-                          orderingItems.reduce((acc, {item}) => {
-                            const supplier = item.category === 'Fruit' ? 'Fresh Produce Co.' :
-                                           item.category === 'Vegetable' ? 'Green Valley Farms' :
-                                           item.category === 'Dairy' ? 'Dairy Direct Ltd.' :
-                                           'General Supplies Inc.';
-                            acc[supplier] = true;
+                      onClick={async () => {
+                        try {
+                          // Group items by supplier
+                          const supplierGroups = orderingItems.reduce((acc, {item, quantity}) => {
+                            const supplier = getSupplierNameByCategory(item.category);
+                            if (!acc[supplier]) acc[supplier] = [];
+                            acc[supplier].push({item, quantity});
                             return acc;
-                          }, {} as Record<string, boolean>)
-                        ).length} supplier(s) for ${orderingItems.length} items`);
-                        setShowSupplierOrder(false);
+                          }, {} as Record<string, {item: InventoryItem, quantity: number}[]>);
+
+                          // Send email to each supplier
+                          let emailsSent = 0;
+                          for (const [supplierName, items] of Object.entries(supplierGroups)) {
+                            const emailItems = items.map(({item, quantity}) => ({
+                              sku: item.sku,
+                              name: item.name,
+                              currentStock: item.currentStock,
+                              quantityNeeded: quantity,
+                              unit: item.unit,
+                              price: item.price || 0
+                            }));
+
+                            const response = await fetch('/api/restock/send', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                items: emailItems,
+                                supplierEmail: getSupplierEmail(supplierName),
+                                supplierName: supplierName
+                              })
+                            });
+
+                            const result = await response.json();
+                            if (result.success) {
+                              emailsSent++;
+                            }
+                          }
+
+                          if (emailsSent > 0) {
+                            success(`📧 Order emails sent to ${emailsSent} supplier(s) for ${orderingItems.length} items!`);
+                            setShowSupplierOrder(false);
+                            setOrderingItems([]);
+                          } else {
+                            throw new Error('Failed to send emails');
+                          }
+                        } catch (err) {
+                          console.error('Send order error:', err);
+                          errorToast('Failed to send orders. Please try again.');
+                        }
                       }}
                       className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold shadow-lg transition-colors flex items-center gap-2"
                     >
