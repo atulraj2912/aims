@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -16,13 +17,54 @@
 # next.js
 /.next/
 /out/
+.next/
+out/
 
 # production
 /build
+build/
+dist/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# ML Models & Data
+ml-models/data/
+ml-models/models/
+ml-models/runs/
+ml-models/uploads/
+ml-models/weights/
+ml-models/*.pth
+ml-models/*.pt
+*.weights
+*.h5
+*.pkl
+*.joblib
+*.pth
+*.pt
+runs/
+yolo*.pt
 
 # misc
 .DS_Store
 *.pem
+*.log
+
+# Google Cloud credentials - NEVER commit
+credentials/
+google-vision-key.json
+*-key.json
 
 # debug
 npm-debug.log*
@@ -32,6 +74,10 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # vercel
 .vercel
@@ -39,3 +85,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+.DS_Store
