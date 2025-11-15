@@ -793,7 +793,104 @@ export default function Dashboard() {
                   }}
                   className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-semibold flex items-center gap-2 whitespace-nowrap"
                 >
-                  <span>📥</span> Export
+                  <span>📥</span> Export Inventory
+                </button>
+
+                <button
+                  onClick={() => {
+                    const now = new Date();
+                    const monthName = now.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+                    
+                    // Helper function to format currency
+                    const formatCurrency = (amount: number) => {
+                      return amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                    };
+                    
+                    // Calculate summary statistics
+                    const totalItems = inventory.length;
+                    const totalValue = inventory.reduce((sum, item) => sum + (item.currentStock * (item.price || 0)), 0);
+                    const criticalItems = inventory.filter(item => item.currentStock / item.optimalStock <= 0.2).length;
+                    const lowStockItems = inventory.filter(item => item.currentStock / item.optimalStock <= 0.5 && item.currentStock / item.optimalStock > 0.2).length;
+                    const optimalItems = inventory.filter(item => item.currentStock / item.optimalStock > 0.5).length;
+                    const categorySummary = inventory.reduce((acc, item) => {
+                      const cat = item.category || 'Uncategorized';
+                      if (!acc[cat]) acc[cat] = { count: 0, value: 0 };
+                      acc[cat].count += 1;
+                      acc[cat].value += item.currentStock * (item.price || 0);
+                      return acc;
+                    }, {} as Record<string, { count: number; value: number }>);
+
+                    // Build comprehensive report
+                    let report = `INVENTORY MONTHLY REPORT - ${monthName}\n`;
+                    report += `Generated on: ${now.toLocaleDateString('en-IN')} ${now.toLocaleTimeString('en-IN')}\n`;
+                    report += `=${'='.repeat(80)}\n\n`;
+                    
+                    report += `EXECUTIVE SUMMARY\n`;
+                    report += `${'-'.repeat(80)}\n`;
+                    report += `Total Items: ${totalItems}\n`;
+                    report += `Total Inventory Value: Rs. ${formatCurrency(totalValue)}\n`;
+                    report += `Critical Stock Items: ${criticalItems} (${((criticalItems/totalItems)*100).toFixed(1)}%)\n`;
+                    report += `Low Stock Items: ${lowStockItems} (${((lowStockItems/totalItems)*100).toFixed(1)}%)\n`;
+                    report += `Optimal Stock Items: ${optimalItems} (${((optimalItems/totalItems)*100).toFixed(1)}%)\n\n`;
+                    
+                    report += `CATEGORY BREAKDOWN\n`;
+                    report += `${'-'.repeat(80)}\n`;
+                    Object.entries(categorySummary).forEach(([cat, data]) => {
+                      report += `${cat}: ${data.count} items | Value: Rs. ${formatCurrency(data.value)}\n`;
+                    });
+                    report += `\n`;
+                    
+                    report += `DETAILED INVENTORY\n`;
+                    report += `${'-'.repeat(80)}\n`;
+                    report += `SKU,Name,Category,Current Stock,Optimal Stock,Unit,Price (Rs.),Total Value (Rs.),Location,Status\n`;
+                    inventory.forEach(item => {
+                      const status = item.currentStock / item.optimalStock <= 0.2 ? 'CRITICAL' : 
+                                   item.currentStock / item.optimalStock <= 0.5 ? 'LOW' : 'OPTIMAL';
+                      const itemValue = item.currentStock * (item.price || 0);
+                      report += `${item.sku},"${item.name}",${item.category || 'N/A'},${item.currentStock},${item.optimalStock},${item.unit},${formatCurrency(item.price || 0)},${formatCurrency(itemValue)},"${item.location}",${status}\n`;
+                    });
+                    
+                    report += `\n${'-'.repeat(80)}\n`;
+                    report += `CRITICAL ACTIONS REQUIRED\n`;
+                    report += `${'-'.repeat(80)}\n`;
+                    const criticalList = inventory.filter(item => item.currentStock / item.optimalStock <= 0.2);
+                    if (criticalList.length > 0) {
+                      criticalList.forEach(item => {
+                        const needed = item.optimalStock - item.currentStock;
+                        report += `WARNING: ${item.name} (${item.sku}): Stock ${item.currentStock}/${item.optimalStock} | ORDER ${needed} ${item.unit} URGENTLY\n`;
+                      });
+                    } else {
+                      report += `SUCCESS: No critical stock items. All inventory levels are healthy.\n`;
+                    }
+                    
+                    report += `\n${'-'.repeat(80)}\n`;
+                    report += `RECOMMENDATIONS\n`;
+                    report += `${'-'.repeat(80)}\n`;
+                    const lowList = inventory.filter(item => item.currentStock / item.optimalStock <= 0.5 && item.currentStock / item.optimalStock > 0.2);
+                    if (lowList.length > 0) {
+                      lowList.forEach(item => {
+                        const needed = Math.ceil((item.optimalStock - item.currentStock) * 1.2);
+                        report += `RESTOCK: ${item.name} (${item.sku}): Consider ordering ${needed} ${item.unit}\n`;
+                      });
+                    } else {
+                      report += `SUCCESS: All inventory levels are optimal.\n`;
+                    }
+                    
+                    report += `\n${'='.repeat(80)}\n`;
+                    report += `End of Report\n`;
+
+                    const blob = new Blob([report], { type: 'text/csv;charset=utf-8;' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `inventory-report-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}.csv`;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    success(`Monthly report for ${monthName} exported successfully`);
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold flex items-center gap-2 whitespace-nowrap"
+                >
+                  <span>📊</span> Monthly Report
                 </button>
               </div>
             </div>
