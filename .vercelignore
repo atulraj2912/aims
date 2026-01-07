@@ -1,0 +1,41 @@
+# Python & ML Models (not needed for deployment)
+ml-models/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# ML Data & Weights
+ml-models/data/
+ml-models/uploads/
+ml-models/weights/
+*.pth
+*.pt
+
+# Development files
+.env.local
+.env*.local
+
+# IDE
+.vscode/
+.idea/
+
+# Testing
+coverage/
+.pytest_cache/
+
+# Documentation (optional - remove if you want docs deployed)
+*.md
+!README.md
+
+# Scripts
+scripts/
+start-detection-api.bat
+start.ps1
+
+# Training data
+training-data/
+runs/
+
+# Google credentials (use env vars instead)
+credentials/

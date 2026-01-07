@@ -36,7 +36,7 @@ Sends HTML email to each supplier with:
          ↓
 Supplier clicks Approve or Reject in email
          ↓
-You receive confirmation at: aryan62056@gmail.com
+You receive confirmation at: shopkeeper@yourdomain.com
 ```
 
 ---
@@ -90,7 +90,7 @@ export const supplierContacts: Record<string, SupplierContact> = {
 ### Test 3: Supplier Approval
 1. Open the email sent to supplier
 2. Click "✅ APPROVE ORDER" button
-3. Check your shopkeeper email (aryan62056@gmail.com)
+3. Check your shopkeeper email (shopkeeper@yourdomain.com)
 4. You should receive confirmation
 
 ### Test 4: Supplier Rejection
@@ -115,15 +115,15 @@ export const supplierContacts: Record<string, SupplierContact> = {
 
 **Not receiving confirmation emails?**
 - Check `SHOPKEEPER_EMAIL` in `.env.local`
-- Verify it's set to: aryan62056@gmail.com
+- Verify it's set to: shopkeeper@yourdomain.com
 - Check spam folder
 
 ---
 
 ## 📊 Current Configuration:
 
-**Sender:** araj29122004@gmail.com (Error404 Store)
-**Shopkeeper:** aryan62056@gmail.com
+**Sender:** your-email@gmail.com (Your Store Name)
+**Shopkeeper:** shopkeeper@yourdomain.com
 **SMTP:** Gmail (smtp.gmail.com:587)
 **Status:** ✅ Ready to use
 

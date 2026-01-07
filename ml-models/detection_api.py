@@ -11,7 +11,27 @@ from datetime import datetime
 import json
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for Next.js frontend
+
+# Configure CORS for production
+allowed_origins = [
+    'http://localhost:3000',  # Local development
+    'http://127.0.0.1:3000',
+    'http://192.168.29.183:3000',  # Network IP
+    'http://172.23.240.1:3000',
+]
+
+# Add production URL from environment variable
+if os.environ.get('ALLOWED_ORIGIN'):
+    allowed_origins.append(os.environ.get('ALLOWED_ORIGIN'))
+
+# Allow all Vercel preview deployments
+CORS(app, resources={
+    r"/*": {
+        "origins": allowed_origins + ["https://*.vercel.app"],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 
 # Configuration
 UPLOAD_FOLDER = 'uploads'
@@ -285,10 +305,18 @@ def train_info():
     })
 
 if __name__ == '__main__':
+    # Get port from environment variable (for cloud deployment) or default to 5001
+    port = int(os.environ.get('PORT', 5001))
+    
+    # Check if running in production
+    is_production = os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('RENDER')
+    
     print("🚀 Starting AIMS Product Detection API...")
     print(f"📁 Upload folder: {os.path.abspath(UPLOAD_FOLDER)}")
     print(f"🔧 Allowed file types: {ALLOWED_EXTENSIONS}")
     print(f"📊 Max file size: {MAX_FILE_SIZE / (1024*1024)}MB")
-    print("\n✅ API ready at http://localhost:5001")
+    print(f"\n✅ API ready at http://{'0.0.0.0' if is_production else 'localhost'}:{port}")
     
-    app.run(host='0.0.0.0', port=5001, debug=True)
+    # Disable debug mode in production
+    app.run(host='0.0.0.0', port=port, debug=not is_production)
+

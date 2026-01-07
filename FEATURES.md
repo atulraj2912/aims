@@ -24,7 +24,7 @@
   - Row Level Security enabled
   - Real-time data persistence
   - API integration for all CRUD operations
-- **Connection**: Cloud-hosted at `haisvbuvisvenfwoceau.supabase.co`
+- **Connection**: Cloud-hosted at `your-project.supabase.co`
 
 ### 3. **Computer Vision AI** (Roboflow) 📷
 - **Model**: packages-pqk0m v3
@@ -133,9 +133,9 @@ d:\aims\
 ## 🔑 Environment Variables
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=https://haisvbuvisvenfwoceau.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-key>
-ROBOFLOW_API_KEY=c32qzEbpLgMAYtrQlWG0
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+ROBOFLOW_API_KEY=your_roboflow_api_key_here
 ROBOFLOW_MODEL=packages-pqk0m
 ROBOFLOW_VERSION=3
 ```

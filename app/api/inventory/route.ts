@@ -97,21 +97,8 @@ export async function POST(request: Request) {
       throw error;
     }
 
-    // Emit socket update
-    emitInventoryUpdate({
-      id: data.id,
-      sku: data.sku,
-      name: data.name,
-      barcode: data.barcode,
-      category: data.category,
-      price: data.price,
-      currentStock: data.current_stock,
-      optimalStock: data.optimal_stock,
-      expiryDate: data.expiry_date,
-      unit: data.unit,
-      lastUpdated: data.last_updated,
-      location: data.location
-    });
+    // Emit socket update (no parameters - WebSocket not available on Vercel)
+    emitInventoryUpdate();
 
     return NextResponse.json({
       success: true,

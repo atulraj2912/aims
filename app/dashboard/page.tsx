@@ -90,7 +90,7 @@ export default function Dashboard() {
   // Generate historical and forecasted sales data for visualization
   const generateSalesData = (item: InventoryItem) => {
     const baseDailyDemand = item.optimalStock / 30;
-    const { multiplier: festivalMultiplier } = getFestivalMultiplier(item.category);
+    const { multiplier: festivalMultiplier } = getFestivalMultiplier(item.category || 'General');
     
     // Generate 7 days of historical data (simulated)
     const historical = Array.from({ length: 7 }, (_, i) => {
@@ -459,7 +459,7 @@ export default function Dashboard() {
     try {
       // Group items by supplier
       const supplierGroups = items.reduce((acc, item) => {
-        const supplier = getSupplierNameByCategory(item.category);
+        const supplier = getSupplierNameByCategory(item.category || 'General');
         if (!acc[supplier]) acc[supplier] = [];
         acc[supplier].push(item);
         return acc;
@@ -602,7 +602,7 @@ export default function Dashboard() {
               >
                 <span className="text-white text-xl">🔄</span>
               </button>
-              <NotificationBell inventory={inventory} />
+              <NotificationBell />
               <UserButton afterSignOutUrl="/" />
             </div>
           </div>
@@ -996,7 +996,7 @@ export default function Dashboard() {
                     
                     // Enhanced prediction with trends and festivals
                     const baseDailyDemand = calculateSalesTrend(item);
-                    const { multiplier: festivalMultiplier, festival } = getFestivalMultiplier(item.category);
+                    const { multiplier: festivalMultiplier, festival } = getFestivalMultiplier(item.category || 'General');
                     const adjustedDailyDemand = Math.ceil(baseDailyDemand * festivalMultiplier);
                     const forecastedDemand = adjustedDailyDemand * 7;
                     const stockAfter7Days = Math.max(0, currentStock - forecastedDemand);
