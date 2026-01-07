@@ -4,23 +4,5 @@
   "installCommand": "npm install",
   "framework": "nextjs",
   "outputDirectory": ".next",
-  "regions": ["iad1"],
-  "env": {
-    "NEXT_PUBLIC_SUPABASE_URL": "@supabase-url",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@supabase-anon-key",
-    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "@clerk-publishable-key",
-    "CLERK_SECRET_KEY": "@clerk-secret-key",
-    "HF_API_KEY": "@hf-api-key",
-    "ROBOFLOW_API_KEY": "@roboflow-api-key",
-    "ROBOFLOW_MODEL": "@roboflow-model",
-    "ROBOFLOW_VERSION": "@roboflow-version",
-    "SMTP_HOST": "@smtp-host",
-    "SMTP_PORT": "@smtp-port",
-    "SMTP_USER": "@smtp-user",
-    "SMTP_PASSWORD": "@smtp-password",
-    "SMTP_FROM": "@smtp-from",
-    "SHOPKEEPER_EMAIL": "@shopkeeper-email",
-    "SHOPKEEPER_NAME": "@shopkeeper-name",
-    "FLASK_API_URL": "@flask-api-url"
-  }
+  "regions": ["iad1"]
 }
